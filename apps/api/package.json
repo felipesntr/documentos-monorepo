@@ -1,0 +1,33 @@
+{
+  "name": "documentos-api",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/app.ts",
+  "license": "MIT",
+  "author": "Felipe S. Rocha",
+  "scripts": {
+    "dev": "tsx watch src/app.ts",
+    "start": "tsx watch src/app.ts",
+    "typeorm": "tsx ./node_modules/typeorm/cli.js -d src/infra/relational/data-source.ts",
+    "migration:generate": "npm run typeorm migration:generate src/infra/relational/migrations/InitialMigration",
+    "migration:run": "npm run typeorm migration:run"
+  },
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.13.0",
+    "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/mssql": "^9.1.7",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mssql": "^10.0.4",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.22",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  }
+}

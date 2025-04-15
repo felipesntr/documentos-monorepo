@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      ## lower memory for testing purposes
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Your_password123
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlvolume:/var/opt/mssql
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - SQLSERVER_USER=sa
+      - SQLSERVER_PASSWORD=Your_password123
+      - SQLSERVER_DB=master
+      - SQLSERVER_HOST=sqlserver
+      - ELASTIC_URL=http://elasticsearch:9200
+    depends_on:
+      - sqlserver
+      - elasticsearch
+
+  # web:
+  #   build: ./apps/web
+  #   container_name: documentos-web
+  #   ports:
+  #     - "3001:3000"
+  #   depends_on:
+  #     - api
+
+volumes:
+  esdata:
+    driver: local
+  sqlvolume:
+    driver: local
