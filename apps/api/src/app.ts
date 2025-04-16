@@ -5,6 +5,8 @@ import { RouteRegistry } from './infra/router';
 import { verifyToken } from './infra/jwt';
 
 import './documents/create-document.feature';
+import './documents/get-document.feature';
+import './documents/search-documents.feature';
 import './auth/auth.feature';
 
 import { AppDataSource } from 'infra/relational/data-source';
@@ -19,6 +21,7 @@ AppDataSource.initialize()
 
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 for (const route of RouteRegistry.routes) {
     const { method, path, handler, authRequired } = route;

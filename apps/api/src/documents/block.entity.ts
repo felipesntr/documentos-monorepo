@@ -27,4 +27,7 @@ export class Block {
 
     @Column('uuid')
     documentId!: string;
+
+    @Column('simple-json', { nullable: true })
+    embedding?: number[];
 }

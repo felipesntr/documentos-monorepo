@@ -12,7 +12,7 @@ export const AppDataSource = new DataSource({
     password: process.env.SQLSERVER_PASSWORD || 'Your_password123',
     database: process.env.SQLSERVER_DB || 'master',
     entities: [Document, Block, User],
-    migrations: ['src/migrations/*.ts'],
+    migrations: ['src/infra/relational/migrations/*.ts'],
     synchronize: false,
     options: {
         encrypt: false,

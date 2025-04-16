@@ -6,6 +6,7 @@ import type { Request, Response } from 'express';
 import { AppDataSource } from 'infra/relational/data-source';
 import { RouteRegistry } from 'infra/router';
 import { es } from 'infra/elastic';
+import { vectorizeText } from 'infra/vectorize';
 
 export class CreateDocument {
     static CommandSchema = z.object({
@@ -21,7 +22,7 @@ export class CreateDocument {
     });
 
     static async validate(input: unknown) {
-        const result = this.CommandSchema.safeParse(input);
+        const result = CreateDocument.CommandSchema.safeParse(input);
         if (!result.success) {
             return { success: false, errors: result.error.format() };
         }
@@ -29,31 +30,37 @@ export class CreateDocument {
         return { success: true, data: result.data };
     }
 
-    static async handle(command: z.infer<typeof this.CommandSchema>) {
+    static async handle(command: z.infer<typeof CreateDocument.CommandSchema>) {
         const documentRepository = AppDataSource.getRepository(Document);
 
-        // Cria o documento com blocos
+        const blocksWithVectors = await Promise.all(
+            command.blocks.map(async (block, idx) => {
+                const embedding = await vectorizeText(block.text);
+                return {
+                    blockIndex: idx,
+                    text: block.text,
+                    metadata: JSON.stringify(block.metadata),
+                    embedding
+                };
+            })
+        );
+
         const document = documentRepository.create({
             title: command.title,
-            blocks: command.blocks.map((block, idx) => ({
-                blockIndex: idx,
-                text: block.text,
-                metadata: JSON.stringify(block.metadata)
-            }))
+            blocks: blocksWithVectors
         });
 
-        // Salva no SQL Server
         const savedDocument = await documentRepository.save(document);
 
-        // Indexa no Elasticsearch
-        const body = savedDocument.blocks.map((block, idx) => [
+        const body = blocksWithVectors.map((block, idx) => [
             { index: { _index: 'documentos', _id: `${savedDocument.id}::${idx}` } },
             {
                 docId: savedDocument.id,
                 title: savedDocument.title,
                 blockIndex: block.blockIndex,
                 text: block.text,
-                metadata: JSON.parse(block.metadata)
+                metadata: JSON.parse(block.metadata),
+                embedding: block.embedding
             }
         ]).flat();
 
@@ -65,13 +72,13 @@ export class CreateDocument {
     @RouteRegistry.post('/documentos')
     @RouteRegistry.authorize()
     static async route({ req, res }: { req: Request; res: Response }) {
-        const validation = await this.validate(req.body);
+        const validation = await CreateDocument.validate(req.body);
 
         if (!validation.success) {
             return res.status(400).json({ errors: validation.errors });
         }
 
-        const result = await this.handle(validation.data!);
+        const result = await CreateDocument.handle(validation.data!);
         return res.json(result);
     }
 }
